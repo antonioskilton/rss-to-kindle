@@ -50,6 +50,22 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt
 
+      - name: Validate cover rendering
+        run: |
+          python - <<'PY'
+          from io import BytesIO
+          from PIL import Image
+          from kindle_digest import make_cover_jpeg
+
+          for section in ("AI", "TPM"):
+              data = make_cover_jpeg(section, "September 17, 2026", 3)
+              image = Image.open(BytesIO(data))
+              assert image.format == "JPEG"
+              assert image.size == (1200, 1600)
+              image.verify()
+          print("Cover rendering validated.")
+          PY
+
       - name: Build EPUBs
         run: python kindle_digest.py --lookback-hours "$LOOKBACK_HOURS"
 
