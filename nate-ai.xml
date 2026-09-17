@@ -3,32 +3,8 @@
   <channel>
     <title>Silver Bulletin — AI+</title>
     <link>https://www.natesilver.net/t/ai</link>
-    <description>Nate Silver posts currently listed on the Silver Bulletin AI+ tag page.</description>
+    <description>Nate Silver posts tagged AI on Silver Bulletin.</description>
     <language>en</language>
-    <item>
-      <title>2026 ELWAY NFL projections: Week 2</title>
-      <link>https://www.natesilver.net/p/2026-elway-nfl-ratings-projections-playoff-odds</link>
-      <guid isPermaLink="false">https://www.natesilver.net/p/2026-elway-nfl-ratings-projections-playoff-odds</guid>
-      <pubDate>Thu, 17 Sep 2026 00:18:00 GMT</pubDate>
-      <author>Nate Silver</author>
-      <description>Team ratings, playoff and Super Bowl odds, and forecasts of every upcoming game from Silver Bulletin's exclusive NFL model.</description>
-    </item>
-    <item>
-      <title>FLIPR 2026 midterm election forecast</title>
-      <link>https://www.natesilver.net/p/nate-silver-2026-midterm-election-polls-model</link>
-      <guid isPermaLink="false">https://www.natesilver.net/p/nate-silver-2026-midterm-election-polls-model</guid>
-      <pubDate>Wed, 16 Sep 2026 20:26:50 GMT</pubDate>
-      <author>Nate Silver</author>
-      <description>Silver Bulletin's prediction for every Senate, House, and gubernatorial election in 2026.</description>
-    </item>
-    <item>
-      <title>How popular is Donald Trump?</title>
-      <link>https://www.natesilver.net/p/trump-approval-ratings-nate-silver-bulletin</link>
-      <guid isPermaLink="false">https://www.natesilver.net/p/trump-approval-ratings-nate-silver-bulletin</guid>
-      <pubDate>Wed, 16 Sep 2026 12:55:00 GMT</pubDate>
-      <author>Nate Silver</author>
-      <description>Silver Bulletin approval ratings for President Trump &amp;#8212; and all presidents since Truman.</description>
-    </item>
     <item>
       <title>We’re not ready for superpersistent AI</title>
       <link>https://www.natesilver.net/p/were-not-ready-for-superpersistent</link>
