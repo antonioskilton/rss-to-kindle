@@ -10,6 +10,7 @@ import html
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -21,6 +22,7 @@ import trafilatura
 import yaml
 from bs4 import BeautifulSoup
 from ebooklib import epub
+from PIL import Image, ImageDraw, ImageFont
 
 USER_AGENT = "rss-to-kindle/1.0 (+https://github.com/antonioskilton/rss-to-kindle)"
 REQUEST_TIMEOUT = 25
@@ -47,6 +49,8 @@ h3 { font-size: 1.1em; margin-top: 1.4em; }
 pre, code { font-family: monospace; }
 pre { white-space: pre-wrap; }
 hr { border: 0; border-top: 1px solid #999; margin: 2em 0; }
+.cover-image { display: block; width: 100%; height: auto; margin: 0; }
+.cover-page { margin: 0; padding: 0; }
 """
 
 
@@ -291,6 +295,91 @@ def chapter_filename(article: Article, index: int) -> str:
     return f"article-{index:03d}-{article.article_id}.xhtml"
 
 
+def _font(size: int, bold: bool = False) -> ImageFont.ImageFont:
+    names = (
+        ["DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
+        if bold
+        else ["DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    )
+    for name in names:
+        try:
+            return ImageFont.truetype(name, size=size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def make_cover_jpeg(
+    section: str,
+    display_date: str,
+    article_count: int,
+) -> bytes:
+    """Create a real embedded cover image so Kindle can render a library thumbnail."""
+    width, height = 1200, 1600
+    palettes = {
+        "AI": ((239, 244, 250), (20, 30, 45), (56, 96, 145)),
+        "TPM": ((248, 244, 237), (38, 31, 25), (143, 92, 51)),
+    }
+    background, foreground, accent = palettes.get(
+        section,
+        ((245, 245, 245), (25, 25, 25), (90, 90, 90)),
+    )
+
+    image = Image.new("RGB", (width, height), background)
+    draw = ImageDraw.Draw(image)
+    margin = 105
+
+    draw.rectangle((margin, 110, width - margin, 132), fill=accent)
+    draw.text(
+        (margin, 215),
+        "MORNING READER",
+        font=_font(45, bold=True),
+        fill=accent,
+    )
+    draw.text(
+        (margin, 400),
+        section,
+        font=_font(220, bold=True),
+        fill=foreground,
+    )
+    draw.text(
+        (margin, 725),
+        display_date,
+        font=_font(58),
+        fill=foreground,
+    )
+
+    count_label = f"{article_count} ARTICLE{'S' if article_count != 1 else ''}"
+    draw.text(
+        (margin, 865),
+        count_label,
+        font=_font(42, bold=True),
+        fill=accent,
+    )
+
+    draw.line(
+        (margin, 1050, width - margin, 1050),
+        fill=foreground,
+        width=3,
+    )
+    draw.text(
+        (margin, 1115),
+        "YOUR RSS FEEDS",
+        font=_font(42, bold=True),
+        fill=foreground,
+    )
+    draw.text(
+        (margin, 1190),
+        "No ranking. No filler.",
+        font=_font(38),
+        fill=foreground,
+    )
+
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=92, optimize=True)
+    return buffer.getvalue()
+
+
 def build_epub(
     section: str,
     articles: list[Article],
@@ -312,6 +401,11 @@ def build_epub(
     book.set_language("en")
     book.add_author("rss-to-kindle")
 
+    # A cover XHTML page alone does not give Kindle a library thumbnail.
+    # set_cover() adds the EPUB cover-image metadata Amazon looks for.
+    cover_jpeg = make_cover_jpeg(section, display_date, len(articles))
+    book.set_cover("cover.jpg", cover_jpeg, create_page=False)
+
     css = epub.EpubItem(
         uid="style",
         file_name="style.css",
@@ -325,14 +419,10 @@ def build_epub(
         file_name="cover.xhtml",
         lang="en",
     )
-    cover.content = f"""
-    <div class="kicker">Personal Daily Reader</div>
-    <h1>{html.escape(section)}</h1>
-    <p class="deck">{html.escape(display_date)}</p>
-    <hr/>
-    <p><strong>{len(articles)} article{"s" if len(articles) != 1 else ""}</strong></p>
-    <p>New writing from sources you chose. No ranking. No filler.</p>
-    """
+    cover.content = (
+        f'<div class="cover-page"><img class="cover-image" src="cover.jpg" '
+        f'alt="{html.escape(title, quote=True)}" /></div>'
+    )
     cover.add_item(css)
     book.add_item(cover)
 
