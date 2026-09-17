@@ -17,7 +17,7 @@ on:
       timezone: "America/Los_Angeles"
   push:
     branches:
-      - kindle-digest
+      - main
     paths:
       - "feeds.yaml"
       - "kindle_digest.py"
@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LOOKBACK_HOURS: ${{ github.event.inputs.lookback_hours || '168' }}
+      RESEND_COVER: ${{ github.event_name == 'push' && startsWith(github.event.head_commit.message, '[resend-cover]') }}
 
     steps:
       - name: Check out repository
@@ -67,7 +68,13 @@ jobs:
           PY
 
       - name: Build EPUBs
-        run: python kindle_digest.py --lookback-hours "$LOOKBACK_HOURS"
+        run: |
+          if [ "$RESEND_COVER" = "true" ]; then
+            printf '{"sent_article_ids": [], "deliveries": []}\n' > /tmp/resend-kindle-state.json
+            python kindle_digest.py --lookback-hours 168 --state /tmp/resend-kindle-state.json
+          else
+            python kindle_digest.py --lookback-hours "$LOOKBACK_HOURS"
+          fi
 
       - name: Upload EPUBs for inspection
         uses: actions/upload-artifact@v4
@@ -80,7 +87,7 @@ jobs:
           retention-days: 7
 
       - name: Deliver to Kindle
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle)
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, '[resend-cover]'))
         env:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
