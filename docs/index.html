@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A serverless RSS-to-Kindle pipeline built with GitHub Actions." />
+  <meta name="theme-color" content="#f6f3ed" />
+  <title>RSS to Kindle — GitHub Actions case study</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top">RSS → Kindle</a>
+      <div class="nav-links">
+        <a href="#reader">Reading experience</a>
+        <a href="#pipeline">How it works</a>
+        <a href="#sources">Sources</a>
+        <a class="github-link" href="https://github.com/antonioskilton/rss-to-kindle">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Case study · GitHub Actions · Kindle</p>
+          <h1>A GitHub repository that wakes up before I do.</h1>
+          <p class="hero-copy">
+            Every morning, selected RSS feeds become two clean, Kindle-ready EPUBs —
+            grouped into AI and TPM, deduplicated, formatted, and delivered automatically.
+            No server runs overnight. GitHub is the application.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/antonioskilton/rss-to-kindle">View the source ↗</a>
+            <a class="button secondary" href="https://github.com/antonioskilton/rss-to-kindle/actions/workflows/build-kindle-digests.yml">View the workflow ↗</a>
+          </div>
+          <a class="status-badge" href="https://github.com/antonioskilton/rss-to-kindle/actions/workflows/build-kindle-digests.yml">
+            <img alt="Kindle RSS delivery workflow status" src="https://github.com/antonioskilton/rss-to-kindle/actions/workflows/build-kindle-digests.yml/badge.svg" />
+          </a>
+        </div>
+
+        <div class="hero-visual" aria-label="Two representative daily EPUB covers">
+          <div class="cover-stack">
+            <div class="cover ai">
+              <div class="cover-rule"></div>
+              <div class="cover-kicker">Morning Reader</div>
+              <div class="cover-title">AI</div>
+              <div class="cover-date">September 17, 2026</div>
+              <div class="cover-count">NEW ARTICLES</div>
+              <div class="cover-bottom">YOUR RSS FEEDS<br><span style="font-weight:400">No ranking. No filler.</span></div>
+            </div>
+            <div class="cover tpm">
+              <div class="cover-rule"></div>
+              <div class="cover-kicker">Morning Reader</div>
+              <div class="cover-title">TPM</div>
+              <div class="cover-date">September 17, 2026</div>
+              <div class="cover-count">NEW ARTICLES</div>
+              <div class="cover-bottom">YOUR RSS FEEDS<br><span style="font-weight:400">No ranking. No filler.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Project at a glance">
+      <div class="wrap stats-grid">
+        <div class="stat"><strong>15</strong><span>configured sources</span></div>
+        <div class="stat"><strong>2</strong><span>topic-specific EPUBs</span></div>
+        <div class="stat"><strong>4:30</strong><span>AM Pacific delivery</span></div>
+        <div class="stat"><strong>0</strong><span>servers to operate</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="reader">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">The finished product</p>
+            <h2>It feels like a small daily magazine.</h2>
+          </div>
+          <p class="section-lead">
+            The pipeline does more than dump feed entries into a file. Each EPUB has a real cover image,
+            a linked contents page, native Kindle navigation, publication grouping, cleaned article text,
+            original-source links, and a route back to the contents page after every article.
+          </p>
+        </div>
+
+        <div class="reader-demo">
+          <article class="device">
+            <small>Contents</small>
+            <h3>AI</h3>
+            <h4>Simon Willison</h4>
+            <ul>
+              <li>A new way to think about agent tools</li>
+              <li>Notes on local data and model context</li>
+            </ul>
+            <h4>Pragmatic Engineer</h4>
+            <ul>
+              <li>The changing shape of software teams</li>
+            </ul>
+            <h4>Charity Majors</h4>
+            <ul>
+              <li>Observability, systems, and engineering practice</li>
+            </ul>
+          </article>
+
+          <article class="device article-demo">
+            <small>Simon Willison</small>
+            <h3>Article title</h3>
+            <p><strong>Simon Willison · September 17, 2026</strong></p>
+            <p>
+              The article body is extracted from the full RSS entry when possible. If a feed contains only
+              an excerpt, the workflow fetches the public page and extracts its readable content instead.
+            </p>
+            <p>
+              Headings, lists, links, code blocks, emphasis, and other basic structure survive the conversion,
+              while navigation, forms, scripts, and page chrome are discarded.
+            </p>
+            <p>
+              The result is intentionally plain: typography that works on an e-ink screen, without ranking,
+              summaries, engagement widgets, or algorithmic recommendations.
+            </p>
+            <div class="article-links">Open original article →<br><br>← Back to contents</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sources">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Curated inputs</p>
+            <h2>Two sections, exactly as I want to read them.</h2>
+          </div>
+          <p class="section-lead">
+            Feed configuration lives in a small YAML file. Adding, removing, or moving a publication is a data change,
+            not an application rewrite. The pipeline currently produces one AI reader and one TPM reader.
+          </p>
+        </div>
+
+        <div class="sources-grid">
+          <article class="source-panel ai-panel">
+            <h3>AI</h3>
+            <ul>
+              <li>Addy Osmani</li>
+              <li>GitHub Copilot Changelog</li>
+              <li>Nolan Lawson</li>
+              <li>Thorsten Ball</li>
+              <li>Charity Majors</li>
+              <li>Hacker News — mustafa-suleyman.ai</li>
+              <li>Martin Fowler</li>
+              <li>Nate Silver — AI-filtered feed</li>
+              <li>Pragmatic Engineer</li>
+              <li>Simon Willison</li>
+            </ul>
+          </article>
+
+          <article class="source-panel tpm-panel">
+            <h3>TPM</h3>
+            <ul>
+              <li>Commoncog</li>
+              <li>Cute fish — John Cutler</li>
+              <li>Lessons</li>
+              <li>Rands in Repose</li>
+              <li>Rich Mironov's Product Bytes</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="pipeline">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">The pipeline</p>
+            <h2>Five small stages, one finished artifact.</h2>
+          </div>
+          <p class="section-lead">
+            GitHub Actions supplies the clock and compute. Python handles feed parsing, extraction,
+            canonicalization, EPUB creation, and delivery. The repository also holds the durable sent-state.
+          </p>
+        </div>
+
+        <div class="pipeline">
+          <article class="step">
+            <div class="step-number">1</div>
+            <h3>Collect</h3>
+            <p>Read configured RSS and Atom feeds on a scheduled GitHub Actions run.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">2</div>
+            <h3>Extract</h3>
+            <p>Prefer full feed content; fetch and clean the public article page when a feed is partial.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">3</div>
+            <h3>Build</h3>
+            <p>Generate EPUB3 with a real cover image, contents page, native TOC, and one chapter per article.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">4</div>
+            <h3>Deliver</h3>
+            <p>Email each generated EPUB through Gmail SMTP to Amazon's Send to Kindle service.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">5</div>
+            <h3>Remember</h3>
+            <p>Persist delivered article IDs only after successful delivery so future runs do not resend them.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark-section">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Why GitHub Actions?</p>
+            <h2>The repository is the application.</h2>
+          </div>
+          <p class="section-lead">
+            For a small deterministic personal workflow, GitHub already provides the code host, scheduler,
+            execution environment, secrets store, logs, artifact retention, version history, and deployment mechanism.
+            There is very little infrastructure left to invent.
+          </p>
+        </div>
+
+        <div class="no-stack">
+          <div class="no-item">No VPS</div>
+          <div class="no-item">No Docker host</div>
+          <div class="no-item">No database service</div>
+          <div class="no-item">No cron server</div>
+          <div class="no-item">No paid automation platform</div>
+          <div class="no-item">No mobile backend</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Operations</p>
+            <h2>Small enough to understand, careful enough to trust.</h2>
+          </div>
+          <p class="section-lead">
+            A personal automation still needs sane failure behavior. The system keeps delivery state explicit,
+            secrets out of the repository, and test artifacts available when something needs inspection.
+          </p>
+        </div>
+
+        <div class="two-col">
+          <article class="reliability-card">
+            <h3>Reliability</h3>
+            <ul class="checks">
+              <li>Canonical-URL deduplication</li>
+              <li>Persistent sent-state in the repository</li>
+              <li>State updated only after successful Kindle delivery</li>
+              <li>No empty EPUB when a section has nothing new</li>
+              <li>Generated EPUBs retained as Actions artifacts for debugging</li>
+              <li>SMTP credentials stored only in GitHub Actions secrets</li>
+            </ul>
+          </article>
+
+          <article class="phone-card">
+            <h3>Built from an iPhone</h3>
+            <p>
+              The repository, feed configuration, workflow, EPUB format, delivery test, debugging, and deployment
+              were all created and operated from an iPhone using ChatGPT and GitHub.
+            </p>
+            <p>
+              GitHub Actions became the remote runtime: the phone was the control surface, while GitHub supplied
+              the filesystem, Python environment, scheduler, logs, and network access.
+            </p>
+            <div class="phone-line">
+              iPhone<br>
+              ↓ ChatGPT + GitHub<br>
+              repository change<br>
+              ↓ push<br>
+              GitHub Actions<br>
+              ↓<br>
+              working software
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <h2>RSS to Kindle</h2>
+        <p>A small serverless reading pipeline.</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/antonioskilton/rss-to-kindle">Repository ↗</a>
+        <a href="https://github.com/antonioskilton/rss-to-kindle/blob/main/feeds.yaml">feeds.yaml ↗</a>
+        <a href="https://github.com/antonioskilton/rss-to-kindle/blob/main/.github/workflows/build-kindle-digests.yml">Workflow ↗</a>
+        <a href="https://github.com/antonioskilton/rss-to-kindle/actions">Actions ↗</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
