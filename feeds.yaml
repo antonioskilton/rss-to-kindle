@@ -1,0 +1,37 @@
+timezone: America/Los_Angeles
+
+sections:
+  AI:
+    - name: Addy Osmani
+      url: https://addyosmani.com/rss.xml
+    - name: GitHub Copilot Changelog
+      url: https://github.blog/changelog/label/copilot/feed/
+    - name: Nolan Lawson
+      url: https://nolanlawson.com/feed/
+    - name: Thorsten Ball
+      url: https://registerspill.thorstenball.com/feed
+    - name: Charity Majors
+      url: https://charitydotwtf.substack.com/feed
+    - name: Hacker News — mustafa-suleyman.ai
+      url: "https://hnrss.org/newest?q=mustafa-suleyman.ai&search_attrs=url"
+      kind: hn-target
+    - name: Martin Fowler
+      url: https://martinfowler.com/feed.atom
+    - name: Nate Silver
+      url: https://raw.githubusercontent.com/antonioskilton/rss-to-kindle/main/nate-ai.xml
+    - name: Pragmatic Engineer
+      url: https://newsletter.pragmaticengineer.com/feed
+    - name: Simon Willison
+      url: https://simonwillison.net/atom/everything/
+
+  TPM:
+    - name: Commoncog
+      url: https://commoncog.com/rss/
+    - name: Cute fish — John Cutler
+      url: https://cutlefish.substack.com/feed
+    - name: Lessons
+      url: https://mollyg.substack.com/feed
+    - name: Rands in Repose
+      url: https://randsinrepose.com/feed/
+    - name: Rich Mironov's Product Bytes
+      url: https://www.mironov.com/rss/
