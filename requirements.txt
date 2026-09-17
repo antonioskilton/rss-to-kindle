@@ -1,0 +1,6 @@
+beautifulsoup4
+EbookLib
+feedparser
+PyYAML
+requests
+trafilatura
