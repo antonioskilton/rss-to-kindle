@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an RSS feed containing only posts from Nate Silver's AI+ tag page."""
+"""Create an RSS feed from Nate Silver's official feed, allow-listed by the AI+ tag page."""
 
 from __future__ import annotations
 
