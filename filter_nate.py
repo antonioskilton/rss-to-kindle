@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an RSS feed from Nate Silver's official feed, allow-listed by the AI+ tag page."""
+"""Create an RSS feed containing only Nate Silver posts tagged AI."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from urllib.parse import urlsplit, urlunsplit
 
 import feedparser
 import requests
-from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
 
 SOURCE_FEED = "https://www.natesilver.net/feed"
@@ -31,31 +30,41 @@ def canonical_post_url(url: str) -> str | None:
     return urlunsplit(("https", "www.natesilver.net", path, "", ""))
 
 
-def ai_post_urls() -> set[str]:
-    response = requests.get(
-        AI_TAG_PAGE,
-        headers={"User-Agent": USER_AGENT},
+def post_slug(url: str) -> str | None:
+    normalized = canonical_post_url(url)
+    if not normalized:
+        return None
+    return urlsplit(normalized).path.removeprefix("/p/")
+
+
+def is_ai_post(session: requests.Session, url: str) -> tuple[bool, bool]:
+    """Return (is_ai, tag_metadata_present) using Substack's public post JSON."""
+    slug = post_slug(url)
+    if not slug:
+        return False, False
+
+    response = session.get(
+        f"https://www.natesilver.net/api/v1/posts/{slug}",
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
         timeout=30,
     )
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
+    data = response.json()
+    post = data.get("post", data) if isinstance(data, dict) else {}
 
-    # Substack includes unrelated article links in the surrounding page shell.
-    # The tag listing itself is rendered inside <main>, so only inspect that region.
-    scope = soup.find("main") or soup
+    if not isinstance(post, dict):
+        return False, False
 
-    urls: set[str] = set()
-    for anchor in scope.find_all("a", href=True):
-        href = anchor["href"]
-        if href.startswith("/"):
-            href = f"https://www.natesilver.net{href}"
-        normalized = canonical_post_url(href)
-        if normalized:
-            urls.add(normalized)
-
-    if not urls:
-        raise RuntimeError("No /p/ article links found in the AI+ tag listing")
-    return urls
+    present = "postTags" in post or "post_tags" in post
+    tags = post.get("postTags") or post.get("post_tags") or []
+    for tag in tags:
+        if not isinstance(tag, dict):
+            continue
+        slug_value = str(tag.get("slug", "")).strip().lower()
+        name_value = str(tag.get("name", "")).strip().lower()
+        if slug_value == "ai" or name_value in {"ai", "ai+"}:
+            return True, present
+    return False, present
 
 
 def text(value: object) -> str:
@@ -69,8 +78,6 @@ def add_text(parent: ET.Element, tag: str, value: object) -> ET.Element:
 
 
 def build_feed() -> int:
-    allowed = ai_post_urls()
-
     parsed = feedparser.parse(
         SOURCE_FEED,
         request_headers={"User-Agent": USER_AGENT},
@@ -78,27 +85,38 @@ def build_feed() -> int:
     if getattr(parsed, "bozo", False) and not parsed.entries:
         raise RuntimeError(f"Could not parse source feed: {parsed.bozo_exception}")
 
+    session = requests.Session()
     matching = []
+    metadata_seen = False
+
     for entry in parsed.entries:
         normalized = canonical_post_url(entry.get("link", ""))
-        if normalized and normalized in allowed:
+        if not normalized:
+            continue
+        try:
+            matches_ai, has_metadata = is_ai_post(session, normalized)
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Could not inspect tags for {normalized}: {exc}") from exc
+        metadata_seen = metadata_seen or has_metadata
+        if matches_ai:
             matching.append(entry)
+
+    if not metadata_seen:
+        raise RuntimeError(
+            "Substack post JSON did not expose postTags metadata; refusing to guess."
+        )
 
     if not matching:
         raise RuntimeError(
-            "No current RSS entries matched the AI+ tag page. "
-            "The site structure may have changed."
+            "No AI-tagged posts are present in the current source RSS feed. "
+            "Existing output was left unchanged."
         )
 
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
     add_text(channel, "title", "Silver Bulletin — AI+")
     add_text(channel, "link", AI_TAG_PAGE)
-    add_text(
-        channel,
-        "description",
-        "Nate Silver posts currently listed on the Silver Bulletin AI+ tag page.",
-    )
+    add_text(channel, "description", "Nate Silver posts tagged AI on Silver Bulletin.")
     add_text(channel, "language", "en")
 
     for entry in matching:
@@ -125,16 +143,11 @@ def build_feed() -> int:
         if description:
             add_text(item, "description", description)
 
-        for tag in entry.get("tags", []):
-            term = tag.get("term") if isinstance(tag, dict) else None
-            if term:
-                add_text(item, "category", term)
-
     ET.indent(rss, space="  ")
     xml = ET.tostring(rss, encoding="utf-8", xml_declaration=True)
     OUTPUT.write_bytes(xml + b"\n")
 
-    print(f"Wrote {OUTPUT} with {len(matching)} AI+ entr{'y' if len(matching) == 1 else 'ies'}.")
+    print(f"Wrote {OUTPUT} with {len(matching)} AI-tagged entr{'y' if len(matching) == 1 else 'ies'}.")
     for entry in matching:
         print(f"- {html.unescape(entry.get('title', ''))}")
     return len(matching)
