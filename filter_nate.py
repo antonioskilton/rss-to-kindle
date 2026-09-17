@@ -40,8 +40,12 @@ def ai_post_urls() -> set[str]:
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
+    # Substack includes unrelated article links in the surrounding page shell.
+    # The tag listing itself is rendered inside <main>, so only inspect that region.
+    scope = soup.find("main") or soup
+
     urls: set[str] = set()
-    for anchor in soup.find_all("a", href=True):
+    for anchor in scope.find_all("a", href=True):
         href = anchor["href"]
         if href.startswith("/"):
             href = f"https://www.natesilver.net{href}"
@@ -50,7 +54,7 @@ def ai_post_urls() -> set[str]:
             urls.add(normalized)
 
     if not urls:
-        raise RuntimeError("No /p/ article links found on the AI+ tag page")
+        raise RuntimeError("No /p/ article links found in the AI+ tag listing")
     return urls
 
 
