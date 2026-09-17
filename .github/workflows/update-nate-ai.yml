@@ -1,0 +1,45 @@
+name: Update Nate Silver AI feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */4 * * *"
+  push:
+    paths:
+      - "filter_nate.py"
+      - ".github/workflows/update-nate-ai.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update-feed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check feedparser requests beautifulsoup4
+
+      - name: Build filtered feed
+        run: python filter_nate.py
+
+      - name: Commit feed if changed
+        run: |
+          if git diff --quiet -- nate-ai.xml && git ls-files --error-unmatch nate-ai.xml >/dev/null 2>&1; then
+            echo "Feed has not changed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nate-ai.xml
+          git commit -m "Update Nate Silver AI feed"
+          git push
