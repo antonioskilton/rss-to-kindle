@@ -11,9 +11,9 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
+from zoneinfo import ZoneInfo
 
 import feedparser
 import requests
@@ -28,7 +28,7 @@ REQUEST_TIMEOUT = 25
 ALLOWED_TAGS = {
     "p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
     "ul", "ol", "li", "blockquote", "pre", "code",
-    "em", "strong", "b", "i", "a", "hr", "sup", "sub"
+    "em", "strong", "b", "i", "a", "hr", "sup", "sub",
 }
 DROP_TAGS = {"script", "style", "iframe", "form", "button", "nav", "aside", "footer"}
 
@@ -49,6 +49,7 @@ pre { white-space: pre-wrap; }
 hr { border: 0; border-top: 1px solid #999; margin: 2em 0; }
 """
 
+
 @dataclass
 class Article:
     section: str
@@ -64,13 +65,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="feeds.yaml")
     parser.add_argument("--output-dir", default="dist")
-    parser.add_argument("--lookback-hours", type=int, default=48)
-    parser.add_argument("--state", default="state/kindle.json")
     parser.add_argument(
-        "--mark-sent",
-        action="store_true",
-        help="After successful build, record included article IDs in the state file.",
+        "--lookback-hours",
+        type=int,
+        default=168,
+        help="Search this many hours back. Already-delivered IDs are excluded.",
     )
+    parser.add_argument("--state", default="state/kindle.json")
+    parser.add_argument("--manifest", default="dist/manifest.json")
     return parser.parse_args()
 
 
@@ -83,14 +85,22 @@ def canonicalize_url(url: str) -> str:
         kept = []
         for pair in query.split("&"):
             key = pair.split("=", 1)[0].lower()
-            if not (key.startswith("utm_") or key in {"ref", "source", "mc_cid", "mc_eid"}):
+            if not (
+                key.startswith("utm_")
+                or key in {"ref", "source", "mc_cid", "mc_eid"}
+            ):
                 kept.append(pair)
         query = "&".join(kept)
-    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path, query, ""))
+    return urlunsplit(
+        (parts.scheme.lower(), parts.netloc.lower(), parts.path, query, "")
+    )
 
 
 def article_id(entry: Any, url: str) -> str:
-    stable = canonicalize_url(url) or str(entry.get("id") or entry.get("guid") or entry.get("title") or "")
+    stable = (
+        canonicalize_url(url)
+        or str(entry.get("id") or entry.get("guid") or entry.get("title") or "")
+    )
     return hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24]
 
 
@@ -135,7 +145,12 @@ def extract_feed_body(entry: Any) -> str:
         candidates.append(summary)
     if not candidates:
         return ""
-    return max(candidates, key=lambda text: len(BeautifulSoup(text, "html.parser").get_text(" ", strip=True)))
+    return max(
+        candidates,
+        key=lambda text: len(
+            BeautifulSoup(text, "html.parser").get_text(" ", strip=True)
+        ),
+    )
 
 
 def fetch_article_body(session: requests.Session, url: str) -> str:
@@ -162,18 +177,22 @@ def fetch_article_body(session: requests.Session, url: str) -> str:
 
 def best_body(session: requests.Session, entry: Any, url: str) -> str:
     feed_html = extract_feed_body(entry)
-    feed_text_len = len(BeautifulSoup(feed_html, "html.parser").get_text(" ", strip=True))
+    feed_text_len = len(
+        BeautifulSoup(feed_html, "html.parser").get_text(" ", strip=True)
+    )
     if feed_text_len >= 1200:
         return clean_html(feed_html)
 
     page_html = fetch_article_body(session, url)
-    page_text_len = len(BeautifulSoup(page_html, "html.parser").get_text(" ", strip=True))
+    page_text_len = len(
+        BeautifulSoup(page_html, "html.parser").get_text(" ", strip=True)
+    )
     if page_text_len > feed_text_len:
         return clean_html(page_html)
     return clean_html(feed_html)
 
 
-def load_state(path: Path) -> set[str]:
+def load_sent_ids(path: Path) -> set[str]:
     if not path.exists():
         return set()
     try:
@@ -183,16 +202,11 @@ def load_state(path: Path) -> set[str]:
     return set(data.get("sent_article_ids", []))
 
 
-def save_state(path: Path, sent: set[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "sent_article_ids": sorted(sent),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-
-def collect_articles(config: dict[str, Any], lookback_hours: int, sent: set[str]) -> dict[str, list[Article]]:
+def collect_articles(
+    config: dict[str, Any],
+    lookback_hours: int,
+    sent: set[str],
+) -> dict[str, list[Article]]:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
@@ -210,7 +224,10 @@ def collect_articles(config: dict[str, Any], lookback_hours: int, sent: set[str]
             parsed = feedparser.parse(feed_url, agent=USER_AGENT)
 
             if getattr(parsed, "bozo", False):
-                print(f"  feed warning: {getattr(parsed, 'bozo_exception', 'unknown parse issue')}")
+                print(
+                    f"  feed warning: "
+                    f"{getattr(parsed, 'bozo_exception', 'unknown parse issue')}"
+                )
 
             feed_articles: list[Article] = []
             for entry in parsed.entries:
@@ -222,19 +239,28 @@ def collect_articles(config: dict[str, Any], lookback_hours: int, sent: set[str]
                 if not url:
                     continue
 
-                if feed.get("kind") == "hn-target" and "news.ycombinator.com/item" in url:
+                if (
+                    feed.get("kind") == "hn-target"
+                    and "news.ycombinator.com/item" in url
+                ):
                     continue
 
                 if url in global_seen_urls:
                     continue
+
                 aid = article_id(entry, url)
                 if aid in sent:
                     continue
 
                 body = best_body(session, entry, url)
-                body_text = BeautifulSoup(body, "html.parser").get_text(" ", strip=True)
+                body_text = BeautifulSoup(
+                    body, "html.parser"
+                ).get_text(" ", strip=True)
                 if len(body_text) < 120:
-                    print(f"  skipping thin content: {entry.get('title', '(untitled)')}")
+                    print(
+                        "  skipping thin content: "
+                        f"{entry.get('title', '(untitled)')}"
+                    )
                     continue
 
                 title = str(entry.get("title") or "Untitled").strip()
@@ -251,7 +277,9 @@ def collect_articles(config: dict[str, Any], lookback_hours: int, sent: set[str]
                 )
                 global_seen_urls.add(url)
 
-            feed_articles.sort(key=lambda article: article.published, reverse=True)
+            feed_articles.sort(
+                key=lambda article: article.published, reverse=True
+            )
             section_articles.extend(feed_articles)
 
         result[section_name] = section_articles
@@ -263,7 +291,12 @@ def chapter_filename(article: Article, index: int) -> str:
     return f"article-{index:03d}-{article.article_id}.xhtml"
 
 
-def build_epub(section: str, articles: list[Article], output_dir: Path, tz: ZoneInfo) -> Path | None:
+def build_epub(
+    section: str,
+    articles: list[Article],
+    output_dir: Path,
+    tz: ZoneInfo,
+) -> Path | None:
     if not articles:
         print(f"No new articles for {section}; no EPUB created.")
         return None
@@ -287,7 +320,11 @@ def build_epub(section: str, articles: list[Article], output_dir: Path, tz: Zone
     )
     book.add_item(css)
 
-    cover = epub.EpubHtml(title=title, file_name="cover.xhtml", lang="en")
+    cover = epub.EpubHtml(
+        title=title,
+        file_name="cover.xhtml",
+        lang="en",
+    )
     cover.content = f"""
     <div class="kicker">Personal Daily Reader</div>
     <h1>{html.escape(section)}</h1>
@@ -329,10 +366,15 @@ def build_epub(section: str, articles: list[Article], output_dir: Path, tz: Zone
             for a, ch in items
         )
         toc_rows.append(
-            f'<div class="publication"><h2>{html.escape(publication)}</h2><ul>{links}</ul></div>'
+            f'<div class="publication"><h2>{html.escape(publication)}</h2>'
+            f"<ul>{links}</ul></div>"
         )
 
-    contents = epub.EpubHtml(title="Contents", file_name="contents.xhtml", lang="en")
+    contents = epub.EpubHtml(
+        title="Contents",
+        file_name="contents.xhtml",
+        lang="en",
+    )
     contents.content = f"""
     <div class="kicker">Contents</div>
     <h1>{html.escape(section)}</h1>
@@ -345,7 +387,6 @@ def build_epub(section: str, articles: list[Article], output_dir: Path, tz: Zone
         (epub.Section(publication), tuple(ch for _, ch in items))
         for publication, items in grouped.items()
     )
-
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = [cover, contents, *chapters, "nav"]
@@ -357,29 +398,50 @@ def build_epub(section: str, articles: list[Article], output_dir: Path, tz: Zone
     return path
 
 
+def write_manifest(
+    manifest_path: Path,
+    created: list[tuple[str, Path, list[Article]]],
+    lookback_hours: int,
+) -> None:
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lookback_hours": lookback_hours,
+        "sections": [
+            {
+                "section": section,
+                "path": str(path),
+                "article_count": len(articles),
+                "article_ids": [article.article_id for article in articles],
+            }
+            for section, path, articles in created
+        ],
+    }
+    manifest_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     args = parse_args()
     config_path = Path(args.config)
     state_path = Path(args.state)
     output_dir = Path(args.output_dir)
+    manifest_path = Path(args.manifest)
 
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    sent = load_state(state_path)
+    sent = load_sent_ids(state_path)
     by_section = collect_articles(config, args.lookback_hours, sent)
     tz = ZoneInfo(config.get("timezone", "America/Los_Angeles"))
 
-    included_ids: set[str] = set()
-    created = []
+    created: list[tuple[str, Path, list[Article]]] = []
     for section, articles in by_section.items():
         built = build_epub(section, articles, output_dir, tz)
         if built:
-            created.append(built)
-            included_ids.update(a.article_id for a in articles)
+            created.append((section, built, articles))
 
-    if args.mark_sent and created:
-        sent.update(included_ids)
-        save_state(state_path, sent)
-        print(f"Recorded {len(included_ids)} article IDs in {state_path}")
+    write_manifest(manifest_path, created, args.lookback_hours)
 
     if not created:
         print("No EPUBs created.")
