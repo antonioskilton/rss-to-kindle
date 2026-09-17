@@ -1,0 +1,102 @@
+name: Kindle RSS delivery
+
+on:
+  workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: Hours to search back; already-delivered articles are excluded
+        required: false
+        default: "168"
+      send_to_kindle:
+        description: Actually email the generated EPUBs to Kindle
+        required: true
+        type: boolean
+        default: false
+  schedule:
+    - cron: "30 4 * * *"
+      timezone: "America/Los_Angeles"
+  push:
+    branches:
+      - kindle-digest
+    paths:
+      - "feeds.yaml"
+      - "kindle_digest.py"
+      - "deliver_kindle.py"
+      - "requirements.txt"
+      - ".github/workflows/build-kindle-digests.yml"
+
+concurrency:
+  group: kindle-rss-delivery
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deliver:
+    runs-on: ubuntu-latest
+    env:
+      LOOKBACK_HOURS: ${{ github.event.inputs.lookback_hours || '168' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Validate cover rendering
+        run: |
+          python - <<'PY'
+          from io import BytesIO
+          from PIL import Image
+          from kindle_digest import make_cover_jpeg
+
+          for section in ("AI", "TPM"):
+              data = make_cover_jpeg(section, "September 17, 2026", 3)
+              image = Image.open(BytesIO(data))
+              assert image.format == "JPEG"
+              assert image.size == (1200, 1600)
+              image.verify()
+          print("Cover rendering validated.")
+          PY
+
+      - name: Build EPUBs
+        run: python kindle_digest.py --lookback-hours "$LOOKBACK_HOURS"
+
+      - name: Upload EPUBs for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: kindle-digests
+          path: |
+            dist/*.epub
+            dist/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Deliver to Kindle
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle)
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+          KINDLE_EMAIL: ${{ secrets.KINDLE_EMAIL }}
+        run: python deliver_kindle.py
+
+      - name: Persist successful delivery state
+        if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle))
+        run: |
+          if git diff --quiet -- state/kindle.json; then
+            echo "Delivery state did not change."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/kindle.json
+          git commit -m "Record Kindle delivery state"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
