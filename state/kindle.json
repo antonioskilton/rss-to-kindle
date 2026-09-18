@@ -1,5 +1,6 @@
 {
   "sent_article_ids": [
+    "0c114974aa55eb9d722241ea",
     "1e206d769558c6a9e842d7dd",
     "219c439494be37cebb6964fa",
     "24c611e27106eeb72ee8f05a",
@@ -13,17 +14,21 @@
     "41f2b23db141d620003afb9b",
     "4e32c351abd8d17df0b22601",
     "547415ff1661069968904c1d",
+    "553eb3c867220f4c8b6d99e9",
     "56777eb0c74f867a8c00e792",
     "56ed9309de330598a4e5ae69",
     "628a4d293107ae5d9fb3d584",
     "64f040316f79ac59d87eb477",
+    "6533bdcc0f6c39c58db72a36",
     "71ab167788f6ed97bc73fa4a",
     "72f4aaebdca9e500cdd2477e",
+    "74fc977f691fc14677d3d30f",
     "78b6ec34fe34ad4ccdb0ea42",
     "7b2efff004017f358a30bfc9",
     "827d855fbddb5cbbcdda4705",
     "866aa2935739dfc9625a4d86",
     "8a8d25f8d4d6b60874d9538f",
+    "8ee044e8a259705845504585",
     "90c940affe028fc03ccdbdb6",
     "9508071b9ddc9ea9573bc537",
     "9f7fdbcae31acb6ee491f1ad",
@@ -33,10 +38,12 @@
     "b30b0408a14795de68c8d5e2",
     "bba35dd3f1d61e40d056e87a",
     "bc4ce9d50d9b33de55f21550",
+    "c40a1cd0e489d7260baeb1d4",
     "ca8127be73ee177493222544",
     "cffcc180737c911ec20d790c",
     "d57f5928adacdd34268d71f2",
     "d70ecdec4e940daa69393543",
+    "d9fbb5d07fdb6b984bd11410",
     "e0c6726e7c17d3b1d5ac9c36",
     "eb1d15483d6f2a53a199d715",
     "ef18d943849cad0ec28717e1",
@@ -58,7 +65,13 @@
       "delivered_at": "2026-09-17T12:16:41.238099+00:00",
       "article_count": 3,
       "filename": "TPM-2026-09-17.epub"
+    },
+    {
+      "section": "AI",
+      "delivered_at": "2026-09-18T13:22:44Z",
+      "article_count": 7,
+      "filename": "AI-2026-09-18.epub"
     }
   ],
-  "updated_at": "2026-09-17T12:16:41.238219+00:00"
+  "updated_at": "2026-09-18T13:22:44Z"
 }
