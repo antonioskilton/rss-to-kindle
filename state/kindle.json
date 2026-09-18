@@ -15,6 +15,7 @@
     "4e32c351abd8d17df0b22601",
     "547415ff1661069968904c1d",
     "553eb3c867220f4c8b6d99e9",
+    "55668e9d93e2c01a24454cad",
     "56777eb0c74f867a8c00e792",
     "56ed9309de330598a4e5ae69",
     "628a4d293107ae5d9fb3d584",
@@ -71,7 +72,13 @@
       "delivered_at": "2026-09-18T13:22:44Z",
       "article_count": 7,
       "filename": "AI-2026-09-18.epub"
+    },
+    {
+      "section": "AI",
+      "delivered_at": "2026-09-18T15:03:49.044953+00:00",
+      "article_count": 1,
+      "filename": "AI-2026-09-18.epub"
     }
   ],
-  "updated_at": "2026-09-18T13:22:44Z"
+  "updated_at": "2026-09-18T15:03:49.045076+00:00"
 }
