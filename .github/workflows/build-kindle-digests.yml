@@ -15,6 +15,8 @@ on:
   schedule:
     - cron: "30 4 * * *"
       timezone: "America/Los_Angeles"
+    - cron: "15 5 * * *"
+      timezone: "America/Los_Angeles"
   push:
     branches:
       - main
@@ -80,7 +82,7 @@ jobs:
           retention-days: 7
 
       - name: Deliver to Kindle
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle)
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[send-kindle-now]'))
         env:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
@@ -88,7 +90,7 @@ jobs:
         run: python deliver_kindle.py
 
       - name: Persist successful delivery state
-        if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle))
+        if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_to_kindle) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[send-kindle-now]')))
         run: |
           if git diff --quiet -- state/kindle.json; then
             echo "Delivery state did not change."
