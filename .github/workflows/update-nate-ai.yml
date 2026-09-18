@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "17 */4 * * *"
+    - cron: "47 */4 * * *"
   push:
     paths:
       - "filter_nate.py"
